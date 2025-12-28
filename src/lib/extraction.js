@@ -22,6 +22,42 @@ export const renderPageToCanvas = async (pdfPage, scale = 4.0) => {
   return canvas;
 };
 
+const applySharpening = (ctx, w, h) => {
+  const imgData = ctx.getImageData(0, 0, w, h);
+  const data = imgData.data;
+  const copy = new Uint8ClampedArray(data);
+
+  // Simple contrast/sharpen kernel Laplacian
+  const amount = 0.5; // Strength 0 to 1
+
+  const getPixel = (x, y) => {
+    if (x < 0 || y < 0 || x >= w || y >= h) return null;
+    const idx = (y * w + x) * 4;
+    return { r: copy[idx], g: copy[idx + 1], b: copy[idx + 2] };
+  };
+
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      const idx = (y * w + x) * 4;
+      const c = getPixel(x, y);
+
+      const n = getPixel(x, y - 1) || c;
+      const s = getPixel(x, y + 1) || c;
+      const e = getPixel(x + 1, y) || c;
+      const west = getPixel(x - 1, y) || c;
+
+      const r = c.r + amount * (4 * c.r - n.r - s.r - e.r - west.r);
+      const g = c.g + amount * (4 * c.g - n.g - s.g - e.g - west.g);
+      const b = c.b + amount * (4 * c.b - n.b - s.b - e.b - west.b);
+
+      data[idx] = Math.min(255, Math.max(0, r));
+      data[idx + 1] = Math.min(255, Math.max(0, g));
+      data[idx + 2] = Math.min(255, Math.max(0, b));
+    }
+  }
+  ctx.putImageData(imgData, 0, 0);
+};
+
 export const loadImageToCanvas = async (file) => {
   return new Promise((resolve, reject) => {
     const img = new Image();
@@ -35,6 +71,9 @@ export const loadImageToCanvas = async (file) => {
       ctx.imageSmoothingEnabled = true;
       ctx.imageSmoothingQuality = 'high';
       ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+      applySharpening(ctx, canvas.width, canvas.height);
+
       resolve(canvas);
     };
     img.onerror = reject;
