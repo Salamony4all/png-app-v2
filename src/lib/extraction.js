@@ -11,7 +11,7 @@ export const loadPDF = async (file) => {
   return loadingTask.promise;
 };
 
-export const renderPageToCanvas = async (pdfPage, scale = 2.0) => {
+export const renderPageToCanvas = async (pdfPage, scale = 4.0) => {
   const viewport = pdfPage.getViewport({ scale });
   const canvas = document.createElement('canvas');
   canvas.width = viewport.width;
@@ -27,10 +27,14 @@ export const loadImageToCanvas = async (file) => {
     const img = new Image();
     img.onload = () => {
       const canvas = document.createElement('canvas');
-      canvas.width = img.width;
-      canvas.height = img.height;
+      // Upscale images by 2x to match the high-res PDF workflow and improve output quality
+      const scale = 2.0;
+      canvas.width = img.width * scale;
+      canvas.height = img.height * scale;
       const ctx = canvas.getContext('2d');
-      ctx.drawImage(img, 0, 0);
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = 'high';
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
       resolve(canvas);
     };
     img.onerror = reject;
@@ -136,7 +140,7 @@ export const extractRegions = (canvas) => {
 
         // Filter valid sizes (ignore tiny specks or full page text blocks if possible)
         // Adjust these heuristics
-        if (realBox.w > 30 && realBox.h > 30) {
+        if (realBox.w > 60 && realBox.h > 60) {
           regions.push(realBox);
         }
       }

@@ -74,7 +74,7 @@ function App() {
   const [selectedFinal, setSelectedFinal] = useState(new Set());
 
   const [previewItem, setPreviewItem] = useState(null);
-  const [minSizeFilter, setMinSizeFilter] = useState(30);
+  const [minSizeFilter, setMinSizeFilter] = useState(60);
 
   const itemsByPage = useMemo(() => {
     const groups = {};
@@ -102,7 +102,7 @@ function App() {
         for (let i = 1; i <= totalPages; i++) {
           setProgress((i / totalPages) * 100);
           const page = await pdf.getPage(i);
-          const canvas = await renderPageToCanvas(page, 2.0);
+          const canvas = await renderPageToCanvas(page, 4.0);
           const regions = extractRegions(canvas);
 
           regions.forEach(r => {
